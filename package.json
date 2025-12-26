@@ -1,11 +1,19 @@
 {
   "name": "retool-mcp",
   "version": "1.0.0",
-  "description": "MCP server for Retool - create and manage apps, workflows, and resources",
+  "description": "MCP server for Retool - create and manage apps, workflows, and resources via Claude Code",
   "main": "dist/index.js",
   "type": "module",
+  "bin": {
+    "retool-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "scripts": {
     "build": "tsc",
+    "prepublishOnly": "npm run build",
     "start": "node dist/index.js",
     "dev": "tsx src/index.ts",
     "watch": "tsc --watch"
@@ -25,8 +33,21 @@
   "keywords": [
     "mcp",
     "retool",
-    "model-context-protocol"
+    "model-context-protocol",
+    "claude",
+    "ai",
+    "anthropic",
+    "low-code",
+    "internal-tools"
   ],
-  "author": "Shopflo",
-  "license": "MIT"
+  "author": "Agnibha Bose",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TechnicalRhino/retool-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/TechnicalRhino/retool-mcp/issues"
+  },
+  "homepage": "https://github.com/TechnicalRhino/retool-mcp#readme"
 }
