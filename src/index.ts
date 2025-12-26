@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
-import { Server }                                               from "@modelcontextprotocol/sdk/server/index.js";
-import { StdioServerTransport }                                 from "@modelcontextprotocol/sdk/server/stdio.js";
-import { CallToolRequestSchema, ListToolsRequestSchema, Tool, } from "@modelcontextprotocol/sdk/types.js";
+import { McpServer }           from "@modelcontextprotocol/sdk/server/mcp.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { z }                    from "zod";
 
 // Environment configuration
 const RETOOL_URL     = process.env.RETOOL_URL || "https://retool.example.com";
@@ -159,432 +159,335 @@ class RetoolClient {
     }
 }
 
-// Tool definitions
-const tools: Tool[] = [
-    // Apps
-    {
-        name       : "retool_list_apps",
-        description: "List all Retool apps in the organization",
-        inputSchema: {
-            type      : "object",
-            properties: {},
-            required  : [],
-        },
-    },
-    {
-        name       : "retool_get_app",
-        description: "Get details of a specific Retool app",
-        inputSchema: {
-            type      : "object",
-            properties: {
-                app_id: {
-                    type       : "string",
-                    description: "The ID of the app to retrieve",
-                },
-            },
-            required  : ["app_id"],
-        },
-    },
-    {
-        name       : "retool_create_app",
-        description: "Create a new Retool app",
-        inputSchema: {
-            type      : "object",
-            properties: {
-                name     : {
-                    type       : "string",
-                    description: "Name of the new app",
-                },
-                folder_id: {
-                    type       : "string",
-                    description: "Optional folder ID to place the app in",
-                },
-            },
-            required  : ["name"],
-        },
-    },
-    {
-        name       : "retool_delete_app",
-        description: "Delete a Retool app",
-        inputSchema: {
-            type      : "object",
-            properties: {
-                app_id: {
-                    type       : "string",
-                    description: "The ID of the app to delete",
-                },
-            },
-            required  : ["app_id"],
-        },
-    },
-    {
-        name       : "retool_create_app_release",
-        description: "Create a new release/version of a Retool app",
-        inputSchema: {
-            type      : "object",
-            properties: {
-                app_id : {
-                    type       : "string",
-                    description: "The ID of the app",
-                },
-                version: {
-                    type       : "string",
-                    description: "Optional version string for the release",
-                },
-            },
-            required  : ["app_id"],
-        },
-    },
-    // Folders
-    {
-        name       : "retool_list_folders",
-        description: "List all folders in the Retool organization",
-        inputSchema: {
-            type      : "object",
-            properties: {},
-            required  : [],
-        },
-    },
-    {
-        name       : "retool_create_folder",
-        description: "Create a new folder",
-        inputSchema: {
-            type      : "object",
-            properties: {
-                name            : {
-                    type       : "string",
-                    description: "Name of the folder",
-                },
-                parent_folder_id: {
-                    type       : "string",
-                    description: "Optional parent folder ID for nesting",
-                },
-            },
-            required  : ["name"],
-        },
-    },
-    // Workflows
-    {
-        name       : "retool_list_workflows",
-        description: "List all Retool workflows",
-        inputSchema: {
-            type      : "object",
-            properties: {},
-            required  : [],
-        },
-    },
-    {
-        name       : "retool_trigger_workflow",
-        description: "Trigger a Retool workflow with optional data",
-        inputSchema: {
-            type      : "object",
-            properties: {
-                workflow_id: {
-                    type       : "string",
-                    description: "The ID of the workflow to trigger",
-                },
-                data       : {
-                    type       : "object",
-                    description: "Optional data to pass to the workflow",
-                },
-            },
-            required  : ["workflow_id"],
-        },
-    },
-    // Resources
-    {
-        name       : "retool_list_resources",
-        description: "List all resources (database connections, APIs, etc.)",
-        inputSchema: {
-            type      : "object",
-            properties: {},
-            required  : [],
-        },
-    },
-    {
-        name       : "retool_get_resource",
-        description: "Get details of a specific resource",
-        inputSchema: {
-            type      : "object",
-            properties: {
-                resource_id: {
-                    type       : "string",
-                    description: "The ID of the resource",
-                },
-            },
-            required  : ["resource_id"],
-        },
-    },
-    // Users
-    {
-        name       : "retool_list_users",
-        description: "List all users in the organization",
-        inputSchema: {
-            type      : "object",
-            properties: {},
-            required  : [],
-        },
-    },
-    {
-        name       : "retool_get_user",
-        description: "Get details of a specific user",
-        inputSchema: {
-            type      : "object",
-            properties: {
-                user_id: {
-                    type       : "string",
-                    description: "The ID of the user",
-                },
-            },
-            required  : ["user_id"],
-        },
-    },
-    {
-        name       : "retool_create_user",
-        description: "Create/invite a new user to the organization",
-        inputSchema: {
-            type      : "object",
-            properties: {
-                email     : {
-                    type       : "string",
-                    description: "Email address of the user",
-                },
-                first_name: {
-                    type       : "string",
-                    description: "First name of the user",
-                },
-                last_name : {
-                    type       : "string",
-                    description: "Last name of the user",
-                },
-            },
-            required  : ["email"],
-        },
-    },
-    {
-        name       : "retool_deactivate_user",
-        description: "Deactivate a user",
-        inputSchema: {
-            type      : "object",
-            properties: {
-                user_id: {
-                    type       : "string",
-                    description: "The ID of the user to deactivate",
-                },
-            },
-            required  : ["user_id"],
-        },
-    },
-    // Groups
-    {
-        name       : "retool_list_groups",
-        description: "List all groups in the organization",
-        inputSchema: {
-            type      : "object",
-            properties: {},
-            required  : [],
-        },
-    },
-    {
-        name       : "retool_get_group",
-        description: "Get details of a specific group",
-        inputSchema: {
-            type      : "object",
-            properties: {
-                group_id: {
-                    type       : "string",
-                    description: "The ID of the group",
-                },
-            },
-            required  : ["group_id"],
-        },
-    },
-    {
-        name       : "retool_add_user_to_group",
-        description: "Add a user to a group",
-        inputSchema: {
-            type      : "object",
-            properties: {
-                group_id: {
-                    type       : "string",
-                    description: "The ID of the group",
-                },
-                user_id : {
-                    type       : "string",
-                    description: "The ID of the user to add",
-                },
-            },
-            required  : ["group_id", "user_id"],
-        },
-    },
-    // Audit Logs
-    {
-        name       : "retool_get_audit_logs",
-        description: "Get audit logs for the organization",
-        inputSchema: {
-            type      : "object",
-            properties: {
-                start_date: {
-                    type       : "string",
-                    description: "Start date (ISO 8601 format)",
-                },
-                end_date  : {
-                    type       : "string",
-                    description: "End date (ISO 8601 format)",
-                },
-            },
-            required  : [],
-        },
-    },
-];
+const client = new RetoolClient( RETOOL_URL, RETOOL_API_KEY );
 
-// Create MCP server
-const server = new Server(
-        {
-            name   : "retool-mcp",
-            version: "1.0.0",
-        },
-        {
-            capabilities: {
-                tools: {},
+// Create MCP server using the new McpServer API
+const server = new McpServer( {
+    name   : "retool-mcp",
+    version: "1.0.0",
+} );
+
+// Helper to format response
+function formatResponse(result: unknown) {
+    return {
+        content: [
+            {
+                type: "text" as const,
+                text: JSON.stringify( result, null, 2 ),
             },
+        ],
+    };
+}
+
+function formatError(error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+    return {
+        content: [
+            {
+                type: "text" as const,
+                text: `Error: ${errorMessage}`,
+            },
+        ],
+        isError: true,
+    };
+}
+
+// Register tools using the new server.tool() API
+
+// Apps
+server.tool(
+        "retool_list_apps",
+        "List all Retool apps in the organization",
+        {},
+        async () => {
+            try {
+                const result = await client.listApps();
+                return formatResponse( result );
+            } catch (error) {
+                return formatError( error );
+            }
         }
 );
 
-const client = new RetoolClient( RETOOL_URL, RETOOL_API_KEY );
-
-// Handle list tools request
-server.setRequestHandler( ListToolsRequestSchema, async () => {
-    return {tools};
-} );
-
-// Handle tool calls
-server.setRequestHandler( CallToolRequestSchema, async (request) => {
-    const {name, arguments: args} = request.params;
-
-    try {
-        let result: unknown;
-
-        switch (name) {
-                // Apps
-            case "retool_list_apps":
-                result = await client.listApps();
-                break;
-            case "retool_get_app":
-                result = await client.getApp( args?.app_id as string );
-                break;
-            case "retool_create_app":
-                result = await client.createApp(
-                        args?.name as string,
-                        args?.folder_id as string | undefined
-                );
-                break;
-            case "retool_delete_app":
-                result = await client.deleteApp( args?.app_id as string );
-                break;
-            case "retool_create_app_release":
-                result = await client.createAppRelease(
-                        args?.app_id as string,
-                        args?.version as string | undefined
-                );
-                break;
-
-                // Folders
-            case "retool_list_folders":
-                result = await client.listFolders();
-                break;
-            case "retool_create_folder":
-                result = await client.createFolder(
-                        args?.name as string,
-                        args?.parent_folder_id as string | undefined
-                );
-                break;
-
-                // Workflows
-            case "retool_list_workflows":
-                result = await client.listWorkflows();
-                break;
-            case "retool_trigger_workflow":
-                result = await client.triggerWorkflow(
-                        args?.workflow_id as string,
-                        args?.data as Record<string, unknown> | undefined
-                );
-                break;
-
-                // Resources
-            case "retool_list_resources":
-                result = await client.listResources();
-                break;
-            case "retool_get_resource":
-                result = await client.getResource( args?.resource_id as string );
-                break;
-
-                // Users
-            case "retool_list_users":
-                result = await client.listUsers();
-                break;
-            case "retool_get_user":
-                result = await client.getUser( args?.user_id as string );
-                break;
-            case "retool_create_user":
-                result = await client.createUser(
-                        args?.email as string,
-                        args?.first_name as string | undefined,
-                        args?.last_name as string | undefined
-                );
-                break;
-            case "retool_deactivate_user":
-                result = await client.deactivateUser( args?.user_id as string );
-                break;
-
-                // Groups
-            case "retool_list_groups":
-                result = await client.listGroups();
-                break;
-            case "retool_get_group":
-                result = await client.getGroup( args?.group_id as string );
-                break;
-            case "retool_add_user_to_group":
-                result = await client.addUserToGroup(
-                        args?.group_id as string,
-                        args?.user_id as string
-                );
-                break;
-
-                // Audit Logs
-            case "retool_get_audit_logs":
-                result = await client.getAuditLogs(
-                        args?.start_date as string | undefined,
-                        args?.end_date as string | undefined
-                );
-                break;
-
-            default:
-                throw new Error( `Unknown tool: ${name}` );
+server.tool(
+        "retool_get_app",
+        "Get details of a specific Retool app",
+        { app_id: z.string().describe( "The ID of the app to retrieve" ) },
+        async ({ app_id }) => {
+            try {
+                const result = await client.getApp( app_id );
+                return formatResponse( result );
+            } catch (error) {
+                return formatError( error );
+            }
         }
+);
 
-        return {
-            content: [
-                {
-                    type: "text",
-                    text: JSON.stringify( result, null, 2 ),
-                },
-            ],
-        };
-    } catch (error) {
-        const errorMessage =
-                      error instanceof Error ? error.message : "Unknown error occurred";
-        return {
-            content: [
-                {
-                    type: "text",
-                    text: `Error: ${errorMessage}`,
-                },
-            ],
-            isError: true,
-        };
-    }
-} );
+server.tool(
+        "retool_create_app",
+        "Create a new Retool app",
+        {
+            name     : z.string().describe( "Name of the new app" ),
+            folder_id: z.string().optional().describe( "Optional folder ID to place the app in" ),
+        },
+        async ({ name, folder_id }) => {
+            try {
+                const result = await client.createApp( name, folder_id );
+                return formatResponse( result );
+            } catch (error) {
+                return formatError( error );
+            }
+        }
+);
+
+server.tool(
+        "retool_delete_app",
+        "Delete a Retool app",
+        { app_id: z.string().describe( "The ID of the app to delete" ) },
+        async ({ app_id }) => {
+            try {
+                const result = await client.deleteApp( app_id );
+                return formatResponse( result );
+            } catch (error) {
+                return formatError( error );
+            }
+        }
+);
+
+server.tool(
+        "retool_create_app_release",
+        "Create a new release/version of a Retool app",
+        {
+            app_id : z.string().describe( "The ID of the app" ),
+            version: z.string().optional().describe( "Optional version string for the release" ),
+        },
+        async ({ app_id, version }) => {
+            try {
+                const result = await client.createAppRelease( app_id, version );
+                return formatResponse( result );
+            } catch (error) {
+                return formatError( error );
+            }
+        }
+);
+
+// Folders
+server.tool(
+        "retool_list_folders",
+        "List all folders in the Retool organization",
+        {},
+        async () => {
+            try {
+                const result = await client.listFolders();
+                return formatResponse( result );
+            } catch (error) {
+                return formatError( error );
+            }
+        }
+);
+
+server.tool(
+        "retool_create_folder",
+        "Create a new folder",
+        {
+            name            : z.string().describe( "Name of the folder" ),
+            parent_folder_id: z.string().optional().describe( "Optional parent folder ID for nesting" ),
+        },
+        async ({ name, parent_folder_id }) => {
+            try {
+                const result = await client.createFolder( name, parent_folder_id );
+                return formatResponse( result );
+            } catch (error) {
+                return formatError( error );
+            }
+        }
+);
+
+// Workflows
+server.tool(
+        "retool_list_workflows",
+        "List all Retool workflows",
+        {},
+        async () => {
+            try {
+                const result = await client.listWorkflows();
+                return formatResponse( result );
+            } catch (error) {
+                return formatError( error );
+            }
+        }
+);
+
+server.tool(
+        "retool_trigger_workflow",
+        "Trigger a Retool workflow with optional data",
+        {
+            workflow_id: z.string().describe( "The ID of the workflow to trigger" ),
+            data       : z.record( z.unknown() ).optional().describe( "Optional data to pass to the workflow" ),
+        },
+        async ({ workflow_id, data }) => {
+            try {
+                const result = await client.triggerWorkflow( workflow_id, data );
+                return formatResponse( result );
+            } catch (error) {
+                return formatError( error );
+            }
+        }
+);
+
+// Resources
+server.tool(
+        "retool_list_resources",
+        "List all resources (database connections, APIs, etc.)",
+        {},
+        async () => {
+            try {
+                const result = await client.listResources();
+                return formatResponse( result );
+            } catch (error) {
+                return formatError( error );
+            }
+        }
+);
+
+server.tool(
+        "retool_get_resource",
+        "Get details of a specific resource",
+        { resource_id: z.string().describe( "The ID of the resource" ) },
+        async ({ resource_id }) => {
+            try {
+                const result = await client.getResource( resource_id );
+                return formatResponse( result );
+            } catch (error) {
+                return formatError( error );
+            }
+        }
+);
+
+// Users
+server.tool(
+        "retool_list_users",
+        "List all users in the organization",
+        {},
+        async () => {
+            try {
+                const result = await client.listUsers();
+                return formatResponse( result );
+            } catch (error) {
+                return formatError( error );
+            }
+        }
+);
+
+server.tool(
+        "retool_get_user",
+        "Get details of a specific user",
+        { user_id: z.string().describe( "The ID of the user" ) },
+        async ({ user_id }) => {
+            try {
+                const result = await client.getUser( user_id );
+                return formatResponse( result );
+            } catch (error) {
+                return formatError( error );
+            }
+        }
+);
+
+server.tool(
+        "retool_create_user",
+        "Create/invite a new user to the organization",
+        {
+            email     : z.string().describe( "Email address of the user" ),
+            first_name: z.string().optional().describe( "First name of the user" ),
+            last_name : z.string().optional().describe( "Last name of the user" ),
+        },
+        async ({ email, first_name, last_name }) => {
+            try {
+                const result = await client.createUser( email, first_name, last_name );
+                return formatResponse( result );
+            } catch (error) {
+                return formatError( error );
+            }
+        }
+);
+
+server.tool(
+        "retool_deactivate_user",
+        "Deactivate a user",
+        { user_id: z.string().describe( "The ID of the user to deactivate" ) },
+        async ({ user_id }) => {
+            try {
+                const result = await client.deactivateUser( user_id );
+                return formatResponse( result );
+            } catch (error) {
+                return formatError( error );
+            }
+        }
+);
+
+// Groups
+server.tool(
+        "retool_list_groups",
+        "List all groups in the organization",
+        {},
+        async () => {
+            try {
+                const result = await client.listGroups();
+                return formatResponse( result );
+            } catch (error) {
+                return formatError( error );
+            }
+        }
+);
+
+server.tool(
+        "retool_get_group",
+        "Get details of a specific group",
+        { group_id: z.string().describe( "The ID of the group" ) },
+        async ({ group_id }) => {
+            try {
+                const result = await client.getGroup( group_id );
+                return formatResponse( result );
+            } catch (error) {
+                return formatError( error );
+            }
+        }
+);
+
+server.tool(
+        "retool_add_user_to_group",
+        "Add a user to a group",
+        {
+            group_id: z.string().describe( "The ID of the group" ),
+            user_id : z.string().describe( "The ID of the user to add" ),
+        },
+        async ({ group_id, user_id }) => {
+            try {
+                const result = await client.addUserToGroup( group_id, user_id );
+                return formatResponse( result );
+            } catch (error) {
+                return formatError( error );
+            }
+        }
+);
+
+// Audit Logs
+server.tool(
+        "retool_get_audit_logs",
+        "Get audit logs for the organization",
+        {
+            start_date: z.string().optional().describe( "Start date (ISO 8601 format)" ),
+            end_date  : z.string().optional().describe( "End date (ISO 8601 format)" ),
+        },
+        async ({ start_date, end_date }) => {
+            try {
+                const result = await client.getAuditLogs( start_date, end_date );
+                return formatResponse( result );
+            } catch (error) {
+                return formatError( error );
+            }
+        }
+);
 
 // Start server
 async function main() {
